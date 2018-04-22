@@ -12,7 +12,7 @@ codo_init
     07 fullscreen_method 1 // 0 maximized window (linux)  1 borderless desktop-sized window  2 fullscreen
     08 foreground_sleep_ms 5 // number of milliseconds to sleep each frame. Try 10 to conserve battery power
     09 background_sleep_ms 20 // number of milliseconds to sleep each frame when running in the background
-    10 sessions 18 // number of times program has been run
+    10 sessions 23 // number of times program has been run
     11 rmb_key 0 // 0 for none  226 for LALT
     12 emulate_textinput 0 
     13 desktop_path 
@@ -59,7 +59,7 @@ codo_init
     found 0 joysticks
   ok
 ok
-set app.auto_load_fn /home/gward2489/.lexaloffle/pico-8/carts/spaceblaster.p8
+set app.auto_load_fn /home/gward2489/.lexaloffle/pico-8/carts/spaceblasterv2.p8
 codo_load_pod: /home/gward2489/workspace/pico-8/pico8.dat ok 
 codo_set_screen 128 128 8 100
  set pixel_perfect 1
@@ -76,14 +76,3 @@ SDL_OpenAudio ok
 samples differs; got: 512
 Built-in audio drivers: 0 pulseaudio 1 alsa 2 dsp 3 esd 4 nas 5 disk 6 dummy
 Current audio driver: pulseaudio
-window closed (14)
-codo_exit
-  cmusic_stop
-  codo_main_exit
-  codo_config_save
-  codo_sound_exit
-  codo_video_exit
-  codo_joystick_exit
-  codo_system_exit
-  codo_items_created: 1023
-ok

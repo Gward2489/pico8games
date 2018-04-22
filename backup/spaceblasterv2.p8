@@ -29,7 +29,7 @@ function _init()
 		})
 	end
 
-    function nextLevel(enemiescount)
+    function nextlevel(enemiescount)
         for i=1, enemiescount do
             local d = -1
             if rnd(1)<0.5 then d=1 end
@@ -142,13 +142,11 @@ function update_game()
 	if #enemies <=0 then
 
         local enemycount = flr(rnd(3))+level
-        nextLevel(enemycount)
+        nextlevel(enemycount)
 
 	end
 
-    local count = 0 
 	for e in all(enemies) do
-        count +=1
 		e.m_y += 1.1
 		e.x = e.r*sin(t/50) + e.m_x
 		e.y = e.r*cos(t/50) + e.m_y
@@ -159,9 +157,9 @@ function update_game()
 				game_over()
 			end
 		end
-	    if e.y > 150 then
+	if e.y > 150 then
 		    e.sp=4
-		    e.m_x=100-count*8
+		    e.m_x=100-i*8
 		    e.m_y=20
 		    e.x=-32
 		    e.y=-32
