@@ -30,20 +30,21 @@ function _init()
         sptwo=34,
         spthree=49,
         spfour=50,
-        question_one="what is the italian name for squid served in a restaurant",
+        question_one_part_one="xhat is the italian name",
+        question_one_part_two="for squid in a restaurant?",
         q_one_a_one="calamari",
-        q_one_a_two="a dutch suprise",
+        q_one_a_two="yum",
         q_one_a_three="agilo",
         q_one_right=1,
-        question_two="before becoming james bond, pierce brosnan starred for five years in what tv series?",
-        q_two_a_one="remington steele",
-        q_two_a_two="pee wee herman",
-        q_two_a_three="walker texas ranger",
-        q_two_right=1,
-        question_three="in shakespeare's play, who was the wife of othello?",
-        q_one_a_one="kim kardashian",
-        q_one_a_two="athena",
-        q_one_three="desdemona",
+        question_two="what is the best food?",
+        q_two_a_one="sushi",
+        q_two_a_two="pizza",
+        q_two_a_three="mexican",
+        q_two_right=2,
+        question_three="hendrix played which guitar?",
+        q_three_a_one="les paul",
+        q_three_a_two="tele",
+        q_three_a_three="strat",
         q_three_right=3
     }
     answerboxes = {}
@@ -54,8 +55,8 @@ function _init()
             add(answerboxes, {
                 boxid=i,
                 sp=7,
-                x= 30,
-                y=50,
+                x=10,
+                y=80,
                 box = {x1=0,y1=0,x2=7,y2=7},
                 correct=0
             })
@@ -65,8 +66,8 @@ function _init()
             add(answerboxes, {
                 boxid=i,
                 sp=8,
-                x= 50,
-                y=50,
+                x= 55,
+                y=80,
                 box = {x1=0,y1=0,x2=7,y2=7},
                 correct=0
             })
@@ -76,8 +77,8 @@ function _init()
             add(answerboxes, {
                 boxid=i,
                 sp=9,
-                x= 80,
-                y=50,
+                x= 100,
+                y=80,
                 box = {x1=0,y1=0,x2=7,y2=7},                
                 correct=0
             })
@@ -174,36 +175,78 @@ function fire()
 end
 
 function drawboss(boss)
-    questionround +=1
 
-    spr(boss.spone, 50, 30)
-    spr(boss.sptwo,58, 30)
-    spr(boss.spthree, 50, 38)
-    spr(boss.spfour, 58, 38)
+    spr(boss.spone, 50, 10)
+    spr(boss.sptwo,58, 10)
+    spr(boss.spthree, 50, 18)
+    spr(boss.spfour, 58, 18)
 
-    --for each answer boxes
     if questionround == 1 then
-
-        for b in answerboxes do
+        local q_counter = 0
+        print(boss.question_one_part_one, 10,40, 12)
+        print(boss.question_one_part_two, 10,50, 12)
+        for b in all(answerboxes) do
+            b.correct = 0        
+            q_counter +=1
             spr(b.sp, b.x, b.y)
+            if boss.q_one_right == q_counter then
+                b.correct = 1
+            end
+            if q_counter == 1 then
+                print(boss.q_one_a_one, b.x - 8, b.y+10)
+            end
+            if q_counter == 2 then
+                print(boss.q_one_a_two, b.x - 4, b.y+10)
+            end
+            if q_counter == 3 then
+                print(boss.q_one_a_three, b.x - 8, b.y+10)
+            end
         end
     end
 
     if questionround == 2 then
-
-        for b in answerboxes do
-            spr(b.sp, b.x, b.y)            
+        local q_counter = 0
+        print(boss.question_two, 10,40, 12)
+        for b in all(answerboxes) do
+            b.correct = 0
+            q_counter +=1
+            spr(b.sp, b.x, b.y)
+            if boss.q_two_right == q_counter then
+                b.correct = 1
+            end
+            if q_counter == 1 then
+                print(boss.q_two_a_one, b.x - 8, b.y+10)
+            end
+            if q_counter == 2 then
+                print(boss.q_two_a_two, b.x - 4, b.y+10)
+            end
+            if q_counter == 3 then
+                print(boss.q_two_a_three, b.x - 8, b.y+10)
+            end
         end
     end
 
     if questionround == 3 then
-
-        for b in answerboxes do
+        local q_counter = 0
+        print(boss.question_three, 10,40, 12)
+        for b in all(answerboxes) do
+            b.correct = 0
+            q_counter +=1
             spr(b.sp, b.x, b.y)
-            
+            if boss.q_three_right == q_counter then
+                b.correct = 1
+            end
+            if q_counter == 1 then
+                print(boss.q_three_a_one, b.x - 8, b.y+10)
+            end
+            if q_counter == 2 then
+                print(boss.q_three_a_two, b.x - 4, b.y+10)
+            end
+            if q_counter == 3 then
+                print(boss.q_three_a_three, b.x - 8, b.y+10)
+            end
         end
     end
-    
 end
 
 function update_game()
@@ -274,8 +317,6 @@ function update_game()
 		end
 	end
 
- 
-
 	for b in all(bullets) do
 		b.x+=b.dx
 		b.y+=b.dy
@@ -291,6 +332,29 @@ function update_game()
 				explode(e.x,e.y)
 			end
 		end
+        for ab in all(answerboxes) do
+            if coll(b,ab) and ab.correct == 1 then
+                del(bullets, b)
+                explode(50,10)
+                questionround += 1
+                firstboss.hits += 1
+                ship.p += 1
+                if questionround == 4 then
+                    level += 1
+                    local newenemycount = level + 6
+                    nextlevel(newenemycount)
+                    questionround = 0
+                end
+            end
+            if coll(b, ab) and ab.correct == 0 and questionround > 0 then
+                ship.imm = true
+			    ship.h -= 1
+			    if ship.h <= 0 then
+			    	game_over()
+			    end
+                del(bullets, b)
+            end
+        end
 	end
 		
 	if(t%6<3) then
@@ -315,6 +379,9 @@ function draw_game()
 
     if #enemies <=0 then
         drawboss(firstboss)
+        if questionround == 0 then
+            questionround +=1
+        end
     end
     
 	print(ship.p,9)
@@ -381,7 +448,7 @@ __gfx__
 00000000000003020203000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000002000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
-000100110101002010040100501005010040100201001010010100101003010040100401004010040100301001010000000000000000000000000000000000000000000000000000000000000000000000000000
+000100110103002030040300503005030040300203001030010300103003030040300403004030040300303001030000000000000000000000000000000000000000000000000000000000000000000000000000
 000100003223031230302302f2302e2302b2302923027230222301d23018230122300e2300a230022300000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000300001b6501e650246502a6502b6502c6502c6502a65027650216501a650146500d65007650016500160003600026000360014600046000260002600016000d600086000b6000f60007600196002060001600
 00070000026500165003650066500a6500c6500c6500a650096500e65015650196501a6501d6501d65012650106500c6500a6500a650096500865004650036500365003650026500000000000000000000000000

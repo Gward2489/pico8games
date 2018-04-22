@@ -30,21 +30,21 @@ function _init()
         sptwo=34,
         spthree=49,
         spfour=50,
-        question_one_part_one="What is the Italian name",
+        question_one_part_one="xhat is the italian name",
         question_one_part_two="for squid in a restaurant?",
-        q_one_a_one="Calamari",
-        q_one_a_two="Yum",
-        q_one_a_three="Agilo",
+        q_one_a_one="calamari",
+        q_one_a_two="yum",
+        q_one_a_three="agilo",
         q_one_right=1,
-        question_two="Before becoming James Bond, Pierce Brosnan starred for five years in what tv series?",
-        q_two_a_one="Remington Steele",
-        q_two_a_two="Pee Wee Herman",
-        q_two_a_three="Walker Texas Ranger",
-        q_two_right=1,
-        question_three="In Shakespeare's play, who was the wife of Othello?",
-        q_three_a_one="Kim Kardashian",
-        q_three_a_two="Athena",
-        q_three_three="Desdemona",
+        question_two="what is the best food?",
+        q_two_a_one="sushi",
+        q_two_a_two="pizza",
+        q_two_a_three="mexican",
+        q_two_right=2,
+        question_three="hendrix played which guitar?",
+        q_three_a_one="les paul",
+        q_three_a_two="tele",
+        q_three_a_three="strat",
         q_three_right=3
     }
     answerboxes = {}
@@ -181,13 +181,17 @@ function drawboss(boss)
     spr(boss.spthree, 50, 18)
     spr(boss.spfour, 58, 18)
 
-    if questionround == 0 then
+    if questionround == 1 then
         local q_counter = 0
         print(boss.question_one_part_one, 10,40, 12)
         print(boss.question_one_part_two, 10,50, 12)
         for b in all(answerboxes) do
+            b.correct = 0        
             q_counter +=1
             spr(b.sp, b.x, b.y)
+            if boss.q_one_right == q_counter then
+                b.correct = 1
+            end
             if q_counter == 1 then
                 print(boss.q_one_a_one, b.x - 8, b.y+10)
             end
@@ -200,21 +204,49 @@ function drawboss(boss)
         end
     end
 
-    -- if questionround == 2 then
+    if questionround == 2 then
+        local q_counter = 0
+        print(boss.question_two, 10,40, 12)
+        for b in all(answerboxes) do
+            b.correct = 0
+            q_counter +=1
+            spr(b.sp, b.x, b.y)
+            if boss.q_two_right == q_counter then
+                b.correct = 1
+            end
+            if q_counter == 1 then
+                print(boss.q_two_a_one, b.x - 8, b.y+10)
+            end
+            if q_counter == 2 then
+                print(boss.q_two_a_two, b.x - 4, b.y+10)
+            end
+            if q_counter == 3 then
+                print(boss.q_two_a_three, b.x - 8, b.y+10)
+            end
+        end
+    end
 
-    --     for b in answerboxes do
-    --         spr(b.sp, b.x, b.y)            
-    --     end
-    -- end
-
-    -- if questionround == 3 then
-
-    --     for b in answerboxes do
-    --         spr(b.sp, b.x, b.y)
-            
-    --     end
-    -- end
-    
+    if questionround == 3 then
+        local q_counter = 0
+        print(boss.question_three, 10,40, 12)
+        for b in all(answerboxes) do
+            b.correct = 0
+            q_counter +=1
+            spr(b.sp, b.x, b.y)
+            if boss.q_three_right == q_counter then
+                b.correct = 1
+            end
+            if q_counter == 1 then
+                print(boss.q_three_a_one, b.x - 8, b.y+10)
+            end
+            if q_counter == 2 then
+                print(boss.q_three_a_two, b.x - 4, b.y+10)
+            end
+            if q_counter == 3 then
+                print(boss.q_three_a_three, b.x - 8, b.y+10)
+            end
+        end
+    end
 end
 
 function update_game()
@@ -285,8 +317,6 @@ function update_game()
 		end
 	end
 
- 
-
 	for b in all(bullets) do
 		b.x+=b.dx
 		b.y+=b.dy
@@ -302,6 +332,30 @@ function update_game()
 				explode(e.x,e.y)
 			end
 		end
+        for ab in all(answerboxes) do
+            if coll(b,ab) and ab.correct == 1 then
+                del(bullets, b)
+                explode(50,10)
+                sfx(3,2,0)
+                questionround += 1
+                firstboss.hits += 1
+                ship.p += 1
+                if questionround == 4 then
+                    level += 1
+                    local newenemycount = level + 6
+                    nextlevel(newenemycount)
+                    questionround = 0
+                end
+            end
+            if coll(b, ab) and ab.correct == 0 and questionround > 0 then
+                ship.imm = true
+			    ship.h -= 1
+			    if ship.h <= 0 then
+			    	game_over()
+			    end
+                del(bullets, b)
+            end
+        end
 	end
 		
 	if(t%6<3) then
@@ -326,6 +380,9 @@ function draw_game()
 
     if #enemies <=0 then
         drawboss(firstboss)
+        if questionround == 0 then
+            questionround +=1
+        end
     end
     
 	print(ship.p,9)
