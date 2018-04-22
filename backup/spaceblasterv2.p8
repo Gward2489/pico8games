@@ -8,6 +8,7 @@ function _init()
 	t=0
     level=0
     bossflag=0
+    questionround=0
 	
 	ship = {
 	sp=1,
@@ -22,14 +23,66 @@ function _init()
 	enemies = {}
 	explosions = {}
 	stars = {}
-    boss1 = {
+    firstboss = {
         defeated=0,
         hits=0,
-        sp1=34,
-        sp2=35,
-        sp3=49,
-        sp4=50,
+        spone=33,
+        sptwo=34,
+        spthree=49,
+        spfour=50,
+        question_one="what is the italian name for squid served in a restaurant",
+        q_one_a_one="calamari",
+        q_one_a_two="a dutch suprise",
+        q_one_a_three="agilo",
+        q_one_right=1,
+        question_two="before becoming james bond, pierce brosnan starred for five years in what tv series?",
+        q_two_a_one="remington steele",
+        q_two_a_two="pee wee herman",
+        q_two_a_three="walker texas ranger",
+        q_two_right=1,
+        question_three="in shakespeare's play, who was the wife of othello?",
+        q_one_a_one="kim kardashian",
+        q_one_a_two="athena",
+        q_one_three="desdemona",
+        q_three_right=3
     }
+    answerboxes = {}
+
+    for i=1,3 do
+
+        if i == 1 then
+            add(answerboxes, {
+                boxid=i,
+                sp=7,
+                x= 30,
+                y=50,
+                box = {x1=0,y1=0,x2=7,y2=7},
+                correct=0
+            })
+        end
+
+        if i == 2 then
+            add(answerboxes, {
+                boxid=i,
+                sp=8,
+                x= 50,
+                y=50,
+                box = {x1=0,y1=0,x2=7,y2=7},
+                correct=0
+            })
+        end
+
+        if i == 3 then
+            add(answerboxes, {
+                boxid=i,
+                sp=9,
+                x= 80,
+                y=50,
+                box = {x1=0,y1=0,x2=7,y2=7},                
+                correct=0
+            })
+        end         
+    end
 
 	for i=1,128 do
 		add(stars, {
@@ -55,7 +108,6 @@ function _init()
         })
         end
     end
-
 	start()
 end
 
@@ -121,15 +173,37 @@ function fire()
 	sfx(1,1,0)
 end
 
-function spawnboss(boss)
+function drawboss(boss)
+    questionround +=1
 
-    print(boss.sp1, 30, 45)
-    print(boss.sp2, 30, 46)
-    print(boss.sp3, 31, 45)
-    print(boss.sp4, 31, 46)
+    spr(boss.spone, 50, 30)
+    spr(boss.sptwo,58, 30)
+    spr(boss.spthree, 50, 38)
+    spr(boss.spfour, 58, 38)
+
+    --for each answer boxes
+    if questionround == 1 then
+
+        for b in answerboxes do
+            spr(b.sp, b.x, b.y)
+        end
+    end
+
+    if questionround == 2 then
+
+        for b in answerboxes do
+            spr(b.sp, b.x, b.y)            
+        end
+    end
+
+    if questionround == 3 then
+
+        for b in answerboxes do
+            spr(b.sp, b.x, b.y)
+            
+        end
+    end
     
-
-
 end
 
 function update_game()
@@ -166,11 +240,8 @@ function update_game()
         level +=1
 	end
 
-    if #enemies <=0 and level == 1 then
-        spawnboss(boss1)
-    end
 
-    if boss1.defeated == 1 then
+    if firstboss.defeated == 1 then
         bossflag += 1
     end
 
@@ -242,6 +313,10 @@ function draw_game()
 	 pset(st.x,st.y,6)
 	end
 
+    if #enemies <=0 then
+        drawboss(firstboss)
+    end
+    
 	print(ship.p,9)
     print("level:",14,0,7)
     print(level,34,0,7)
@@ -293,8 +368,8 @@ __gfx__
 00000000009999333399990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000009333390000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000033333333300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000033203320300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000033083308300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000033213321300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000033183318300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000933333333300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000009aabbbbbbb990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000099833b222b3389000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

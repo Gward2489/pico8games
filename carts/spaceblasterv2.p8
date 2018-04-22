@@ -8,6 +8,7 @@ function _init()
 	t=0
     level=0
     bossflag=0
+    questionround=0
 	
 	ship = {
 	sp=1,
@@ -29,7 +30,60 @@ function _init()
         sptwo=34,
         spthree=49,
         spfour=50,
+        question_one_part_one="What is the Italian name",
+        question_one_part_two="for squid in a restaurant?",
+        q_one_a_one="Calamari",
+        q_one_a_two="Yum",
+        q_one_a_three="Agilo",
+        q_one_right=1,
+        question_two="Before becoming James Bond, Pierce Brosnan starred for five years in what tv series?",
+        q_two_a_one="Remington Steele",
+        q_two_a_two="Pee Wee Herman",
+        q_two_a_three="Walker Texas Ranger",
+        q_two_right=1,
+        question_three="In Shakespeare's play, who was the wife of Othello?",
+        q_three_a_one="Kim Kardashian",
+        q_three_a_two="Athena",
+        q_three_three="Desdemona",
+        q_three_right=3
     }
+    answerboxes = {}
+
+    for i=1,3 do
+
+        if i == 1 then
+            add(answerboxes, {
+                boxid=i,
+                sp=7,
+                x=10,
+                y=80,
+                box = {x1=0,y1=0,x2=7,y2=7},
+                correct=0
+            })
+        end
+
+        if i == 2 then
+            add(answerboxes, {
+                boxid=i,
+                sp=8,
+                x= 55,
+                y=80,
+                box = {x1=0,y1=0,x2=7,y2=7},
+                correct=0
+            })
+        end
+
+        if i == 3 then
+            add(answerboxes, {
+                boxid=i,
+                sp=9,
+                x= 100,
+                y=80,
+                box = {x1=0,y1=0,x2=7,y2=7},                
+                correct=0
+            })
+        end         
+    end
 
 	for i=1,128 do
 		add(stars, {
@@ -55,7 +109,6 @@ function _init()
         })
         end
     end
-
 	start()
 end
 
@@ -123,10 +176,44 @@ end
 
 function drawboss(boss)
 
-    spr(boss.spone, 50, 30)
-    spr(boss.sptwo,58, 30)
-    spr(boss.spthree, 50, 38)
-    spr(boss.spfour, 58, 38)
+    spr(boss.spone, 50, 10)
+    spr(boss.sptwo,58, 10)
+    spr(boss.spthree, 50, 18)
+    spr(boss.spfour, 58, 18)
+
+    if questionround == 0 then
+        local q_counter = 0
+        print(boss.question_one_part_one, 10,40, 12)
+        print(boss.question_one_part_two, 10,50, 12)
+        for b in all(answerboxes) do
+            q_counter +=1
+            spr(b.sp, b.x, b.y)
+            if q_counter == 1 then
+                print(boss.q_one_a_one, b.x - 8, b.y+10)
+            end
+            if q_counter == 2 then
+                print(boss.q_one_a_two, b.x - 4, b.y+10)
+            end
+            if q_counter == 3 then
+                print(boss.q_one_a_three, b.x - 8, b.y+10)
+            end
+        end
+    end
+
+    -- if questionround == 2 then
+
+    --     for b in answerboxes do
+    --         spr(b.sp, b.x, b.y)            
+    --     end
+    -- end
+
+    -- if questionround == 3 then
+
+    --     for b in answerboxes do
+    --         spr(b.sp, b.x, b.y)
+            
+    --     end
+    -- end
     
 end
 
