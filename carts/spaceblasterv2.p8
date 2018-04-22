@@ -5,7 +5,7 @@ __lua__
 function _init()
 
 	t=0
-    level=1
+    level=0
 	
 	ship = {
 	sp=1,
@@ -140,10 +140,9 @@ function update_game()
 
 
 	if #enemies <=0 then
-
-        local enemycount = flr(rnd(3))+level
+        level += 1
+        local enemycount = flr(rnd(3))+3+level
         nextLevel(enemycount)
-
 	end
 
     local count = 0 
@@ -210,6 +209,8 @@ function draw_game()
 	end
 
 	print(ship.p,9)
+    print("Level:",14,0,7)
+    print(level,34,0,7)
 	sfx(0,3,0)
 	
 	if not ship.imm or t%8 < 4 then	
