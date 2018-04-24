@@ -39,15 +39,41 @@ function _init()
         q_one_a_two="yum",
         q_one_a_three="agilo",
         q_one_right=1,
-        question_two="what is the best food?",
-        q_two_a_one="sushi",
-        q_two_a_two="pizza",
-        q_two_a_three="mexican",
+        question_two_part_one="what is the only phase of the moon,",
+        question_two_part_two="that can produce a solar eclipse?",
+        q_two_a_one="waxing",
+        q_two_a_two="new moon",
+        q_two_a_three="full moon",
         q_two_right=2,
-        question_three="hendrix played which guitar?",
+        question_three="jimi hendrix played which guitar?",
         q_three_a_one="les paul",
         q_three_a_two="tele",
         q_three_a_three="strat",
+        q_three_right=3
+    }
+    secondboss = {
+        defeated=0,
+        hits=0,
+        spone=128,
+        sptwo=129,
+        spthree=144,
+        spfour=145,
+        question_one_part_one="what type of information,",
+        question_one_part_two="does a dna molecule contain?",
+        q_one_a_one="atomic",
+        q_one_a_two="genetic",
+        q_one_a_three="memory",
+        q_one_right=2,
+        question_two_part_one="which 1984 film features small",
+        question_two_part_two="furry creatures named mogwai?",
+        q_two_a_one="gremlins",
+        q_two_a_two="trolls",
+        q_two_a_three="karate kid",
+        q_two_right=1,
+        question_three="who did bilbo get the ring from?",
+        q_three_a_one="gandalf",
+        q_three_a_two="frodo",
+        q_three_a_three="gollum",
         q_three_right=3
     }
     answerboxes = {}
@@ -151,18 +177,92 @@ function start()
 	_draw = draw_game
 end
 
+function victory()
+    sfx(0,0,0)
+    sfx(1,0,0)
+    sfx(2,0,0)
+    _update = victory_update
+    _draw = victory_draw
+end
+
+function victory_update()
+    if btnp(4) then 
+    levelinit=0
+	t=0
+    level=0
+    bossflag=0
+    questionround=0
+    ship.p = 0
+    ship.h = 4
+    for e in all(enemies) do
+        del(enemies, e)
+    end
+
+    for e in all(enemies2) do
+        del(enemies2, e)
+    end
+
+    for e in all(obstacles) do
+        del(obstacles, e)
+    end
+    for e in all(bullets) do
+        del(bullets, e)
+    end
+    for e in all(explosions) do
+        del(explosions, e)
+    end
+    start()
+    end
+end
+
+function victory_draw()
+	cls()
+	print("you won the game!!!!",15,50,12)
+    print("press z to play again",15,60,12)
+end
+
 function game_over()
+    sfx(0,0,0)
+    sfx(1,0,0)
+    sfx(2,0,0)
 	_update = update_over
 	_draw = draw_over
 end
 
 function update_over()
+    if btnp(4) then 
+    levelinit=0
+	t=0
+    level=0
+    bossflag=0
+    questionround=0
+    ship.p = 0
+    ship.h = 4
+    for e in all(enemies) do
+        del(enemies, e)
+    end
 
+    for e in all(enemies2) do
+        del(enemies2, e)
+    end
+
+    for e in all(obstacles) do
+        del(obstacles, e)
+    end
+    for e in all(bullets) do
+        del(bullets, e)
+    end
+    for e in all(explosions) do
+        del(explosions, e)
+    end
+    start()
+    end
 end
 
 function draw_over()
 	cls()
-	print("game over",50,50,4)
+	print("game over",40,50,12)
+    print("press z to play again",20,60,12)
 end
 
 function start_screen()
@@ -223,8 +323,8 @@ function drawboss(boss)
 
     if questionround == 1 then
         local q_counter = 0
-        print(boss.question_one_part_one, 10,40, 12)
-        print(boss.question_one_part_two, 10,50, 12)
+        print(boss.question_one_part_one, 0,40, 12)
+        print(boss.question_one_part_two, 0,50, 12)
         for b in all(answerboxes) do
             b.correct = 0        
             q_counter +=1
@@ -246,7 +346,8 @@ function drawboss(boss)
 
     if questionround == 2 then
         local q_counter = 0
-        print(boss.question_two, 10,40, 12)
+        print(boss.question_two_part_one, 0,40, 12)
+        print(boss.question_two_part_two, 0,50, 12)
         for b in all(answerboxes) do
             b.correct = 0
             q_counter +=1
@@ -268,7 +369,7 @@ function drawboss(boss)
 
     if questionround == 3 then
         local q_counter = 0
-        print(boss.question_three, 10,40, 12)
+        print(boss.question_three, 0,40, 12)
         for b in all(answerboxes) do
             b.correct = 0
             q_counter +=1
@@ -300,6 +401,10 @@ function update_game()
 			ship.t = 0
 		end
 	end
+
+    if ship.p == 30 then
+        victory()
+    end
 	
 	for st in all(stars) do
 		st.y += st.s
@@ -476,6 +581,13 @@ function draw_game()
             questionround +=1
         end
     end
+
+    if ship.p>= 27 and ship.p <= 29 then
+        drawboss(secondboss)
+        if questionround == 0 then 
+            questionround +=1
+        end
+    end
     
 	print(ship.p,9)
     print("level:",14,0,7)
@@ -596,6 +708,22 @@ __gfx__
 0000000000000000000000000000000000000000000000000eee00000000ccc00cc000cc0cc00cc0cc00cc0cc00000cc00000000000000000000000000000000
 0000000000000000000000000000000000000000000000000eee00000000cc000cc000cc0cc00ccccc00cc00c00000cc00000000000000000000000000000000
 0000000000000000000000000000000000000000000000000eee00000000000000c000cc0c0000ccc0000c00000000c000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000b000b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000030003000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000030003000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000030003000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+55500828082800550000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+56555186018655550000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+56661828182866650000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+56661111111166650000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+56edd111111dde650000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+56662218812266650000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+56edd226622dde650000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+55552d222d2255550000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000d000d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000e000e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
 000100110101002010040100501005010040100201001010010100101003010040100401004010040100301001010000000000000000000000000000000000000000000000000000000000000000000000000000
 000100003223031230302302f2302e2302b2302923027230222301d23018230122300e2300a230022300000000000000000000000000000000000000000000000000000000000000000000000000000000000000
