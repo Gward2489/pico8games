@@ -2,7 +2,15 @@ pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
 
+----------------------------------------------------------
+----------------------------------------------------------
+----------------------------------------------------------
+-- INIT FUNCTION
+
 function _init()
+
+-----------------------------------------------
+-- mole objects 
 
     mole = {
         state = "walking",
@@ -11,9 +19,10 @@ function _init()
         animation_state = "1",
         box = {x1=0,y1=0,x2=6,y2=6},
         coins = {},
+        target_radius = 11,
         x = 450,
         y = 0,
-        speed = 1.7
+        speed = 1.8
     }
 
     mole_sprites = {
@@ -39,7 +48,41 @@ function _init()
         dig4 = 51  
     }
 
+----------------------------------
+-- fox objects
+
+    fox = {
+        state = "sleeping",
+        sub_state = "targeting",
+        direction = "center",
+        speed = 7,
+        x = 450,
+        y = -30,
+        box = {x1=0,y1=0,x2=10,y2=10},
+        attack_timer = 0,
+        target_coords = {
+            x = 0,
+            y = 0
+        },
+        dx = 0,
+        dy = 0
+    }
+
+    fox_sprites = {
+        sleeping = 36,
+        awake = 4,
+        attackcenter = 8,
+        attackright = 6,
+        attackleft = 38,
+        attackup = 40
+    }
+
+-------------------------------------
+-- animation counter for mole
     anim_counter = 0
+
+-------------------------------------
+-- level object to hold level data
 
     level = {
         grass_accents = {},
@@ -53,14 +96,36 @@ function _init()
         }
     }
 
-    function draw_mole()
-        spr(mole_sprites[mole.direction .. mole.animation_state], mole.x, mole.y, 1, 1, false)
-    end
+----------------------------------------------------------------
+-- coin logic
 
     function draw_coin_count()
         local mole_coins =  "coins: " .. tostr(#mole.coins)
         print(mole_coins, mole.x - 58, mole.y - 58, 14)
     end
+
+    function coin_get_check()
+        foreach(level.coins, function(coin) 
+                if (coll(mole, coin)) then
+                    del(level.coins, coin)
+                    add(mole.coins, coin)
+                end
+            end)
+    end
+
+    function draw_coins()
+        foreach(level.coins, function(coin) spr(coin.sprite, coin.x, coin.y) end)
+    end
+    
+
+
+-----------------------------------------------------------------
+-- mole logic
+
+    function draw_mole()
+        spr(mole_sprites[mole.direction .. mole.animation_state], mole.x, mole.y, 1, 1, false)
+    end
+
 
     function move_mole()
 
@@ -114,15 +179,6 @@ function _init()
         end
     end
 
-    function coin_get_check()
-        foreach(level.coins, function(coin) 
-                if (coll(mole, coin)) then
-                    del(level.coins, coin)
-                    add(mole.coins, coin)
-                end
-            end)
-    end
-
     function dig_mole()
 
         anim_counter += 1
@@ -149,10 +205,100 @@ function _init()
             mole.direction = "center"
             if (mole.underground == false) mole.underground = true else mole.underground = false
         end
+    end
 
+---------------------------------------------------------------------------------
+-- fox logic
+
+
+    function draw_fox ()
+        spr(fox_sprites[fox.state], fox.x, fox.y, 2, 2)
+        if (fox.state == "awake") draw_mole_target()
+    end
+
+    function manage_fox()
+        if (fox.state == "sleeping") fox_mole_check()
+        if (fox.sub_state == "targeting") target_mole()
+        if (fox.sub_state == "attacking") attack_mole()
+    end
+
+    function fox_mole_check()
+        if (((mole.x - fox.x)^2 + (mole.y - fox.y)^2) < 40^2) then
+            fox.state = "awake"
+            fox.sub_state = "targeting"
+        end
+    end
+
+    function target_mole()
+        fox.attack_timer += 1
+
+        if (fox.attack_timer > 17) then
+            fox.attack_timer = 0
+
+            set_target_coords()
+            get_direction()
+            fox.state = "attack" .. fox.direction
+            set_attack_angle()
+            fox.sub_state = "attacking"
+        end
 
     end
 
+    function draw_mole_target()
+            if (mole.target_radius < 8) mole.target_radius = 16
+            circ(mole.x + 3.5, mole.y + 3.5, mole.target_radius, 8)
+            mole.target_radius -= .3
+    end
+
+    function attack_mole()
+        fox.attack_timer += 1
+
+        fox.x += fox.dx
+        fox.y += fox.dy
+
+        if (coll(fox, mole)) then
+            -- fox hits mole
+        end
+
+        if (fox.attack_timer > 8) then
+            fox.attack_timer = 0
+            fox.state = "awake"
+            fox.sub_state = "targeting"
+        end
+    end
+
+    function set_target_coords()
+        fox.target_coords = {
+            x = mole.x,
+            y = mole.y
+        }
+    end
+
+    function get_direction()
+        if (mole.direction == "center" or mole.direction == "up") then
+            if ((mole.y - fox.y) > (fox.y - mole.y)) then
+                fox.direction = "center"
+            else
+                fox.direction = "up"
+            end
+        else
+            if ((mole.x - fox.x) > (fox.x - mole.x)) then
+                fox.direction = "right"
+            else
+                fox.direction = "left"
+            end
+        end
+    end
+
+    function set_attack_angle()
+        local angle = atan2(fox.target_coords.y - fox.y, fox.target_coords.x - fox.x)
+        fox.dx = sin(angle) * fox.speed
+        fox.dy = cos(angle) * fox.speed
+    end
+
+
+----------------------------------------------------------------------------------
+-- level logic
 
     function draw_grass()
         rectfill(level.extent.x1, level.extent.y1, level.extent.x2, level.extent.y2, 11)
@@ -163,11 +309,6 @@ function _init()
         rectfill(level.extent.x1, level.extent.y1, level.extent.x2, level.extent.y2, 1 )
         foreach(level.den_accents, function(accent) pset(accent.x, accent.y, accent.color) end)
     end
-
-    function draw_coins()
-        foreach(level.coins, function(coin) spr(coin.sprite, coin.x, coin.y) end)
-    end
-    
 
     function generate_level_grass()
         for x = 300, 600, 1
@@ -234,6 +375,9 @@ function _init()
         end
     end
 
+--------------------------------------
+-- collision logic
+
     function abs_box(s)
     	local box = {}
     	box.x1 = s.box.x1 + s.x
@@ -258,17 +402,33 @@ function _init()
     	return true
     end
 
+----------------------------------
+-- functions to call on startup
+
     generate_level_grass()
     generate_level_den_accents()
     generate_level_coins(37)
 
 end
 
+----------------------------------------------------------
+----------------------------------------------------------
+----------------------------------------------------------
+-- UPDATE FUNCTION
+
 function _update()
     if (mole.state == "walking") move_mole()
     if (mole.state == "digging") dig_mole()
-    if (mole.underground == true) coin_get_check()
+    if (mole.underground == true) then
+        coin_get_check()
+        manage_fox()
+    end
 end
+
+----------------------------------------------------------
+----------------------------------------------------------
+----------------------------------------------------------
+-- DRAW FUNCTION
 
 function _draw()
     cls()
@@ -278,6 +438,7 @@ function _draw()
     else 
         draw_den()
         draw_coins()
+        draw_fox()
     end
 
     draw_mole()
