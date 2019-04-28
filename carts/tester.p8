@@ -59,7 +59,7 @@ function _init()
 ----------------------------------
 -- fox objects
 
-    fox = {
+    fox_obj = {
         state = "sleeping",
         sub_state = "sleeping",
         direction = "center",
@@ -88,6 +88,8 @@ function _init()
         attackleft = 38,
         attackup = 40
     }
+
+    foxes = {}
 
 -------------------------------------
 -- animation counter for mole
@@ -238,18 +240,43 @@ function _init()
             mole.state = "walking"
             mole.direction = "center"
             if (mole.underground == false) then
-                mole.underground = true 
+                mole.underground = true
+                -- make_foxes(3)
+                -- foreach(foxes, function(fox)
+                
+                --     fox.sleep_circle_coords = {}
+                --     make_sleep_boundry_coords(fox)
+                -- end) 
             else 
                 mole.underground = false
-                fox.state = "sleeping"
-                fox.sub_state = "sleeping"
-                fox.sleep_circle_coords = {}
-                make_sleep_boundry_coords()
+
+                foreach(foxes, function(fox) 
+                
+                    fox.state = "sleeping"
+                    fox.sub_state = "sleeping"
+                    fox.sleep_circle_coords = {}
+                    make_sleep_boundry_coords(fox)
+                
+                end)
             end
         end
     end
 
+    -- function fox_spot_check(that_fox, diff1, diff2, x, y)    
+    --     local good_spot = true
+        
+    --     if ( diff1 < that_fox.sleep_radius and diff2 < that_fox.sleep_radius) then
+    --          if ( (x - that_fox.x)^2 + (y - that_fox.y)^2 < that_fox.sleep_radius^2) then
+    --             good_spot = false
+    --          end
+    --     end
+        
+    --     return good_spot
+    -- end
+
     function  create_dig_spots(spotcount)
+
+        local dig_spot_bounds = 15
 
         for spot = 1, spotcount, 1
         do
@@ -262,11 +289,27 @@ function _init()
             local x = flr(rnd(xmax)) + 10
             local y = flr(rnd(ymax)) + 10
 
+            foreach(dig_spots, function(spot) 
+            
+                local diff1 = abs(x - spot.x)
+                local diff2 = abs(y - spot.y)
+
+                spot["sleep_radius"] = dig_spot_bounds
+
+                while (fox_spot_check(spot, diff1, diff2, x, y) != true) do
+                    x = flr(rnd(xmax)) + 10
+                    y = flr(rnd(ymax)) + 10
+                end
+            
+
+            end)
+
             add(dig_spots, {
                 x = x,
                 y = y,
                 box = {x1=0,y1=0,x2=6,y2=6}
             })
+
         end
 
     end
@@ -395,19 +438,75 @@ function _init()
 -- fox logic
 
 
-    function draw_fox ()
+    function fox_spot_check(that_fox, diff1, diff2, x, y)    
+        local good_spot = true
+        
+        if ( diff1 < that_fox.sleep_radius and diff2 < that_fox.sleep_radius) then
+             if ( (x - that_fox.x)^2 + (y - that_fox.y)^2 < that_fox.sleep_radius^2) then
+                good_spot = false
+             end
+        end
+        
+        return good_spot
+    end
+
+    function clone_fox(fox)
+        local new_fox = {}
+
+        for k, v in pairs(fox) do
+            new_fox[k] = v
+        end
+
+        return new_fox
+
+    end
+
+    function make_foxes(fox_count)
+
+        foxes = {}
+
+        for count = 1, fox_count, 1
+        do
+            local new_fox = clone_fox(fox_obj)
+
+            local x = flr(rnd(level.extent.x2 - 20)) + 10
+            local y = flr(rnd(level.extent.y2 - 20 )) + 10
+
+            new_fox.x = x
+            new_fox.y = y
+
+            local diff1 = abs(mole.x - new_fox.x)
+            local diff2 = abs(mole.y - new_fox.y)
+
+            foreach(foxes, function(that_fox) 
+                 while (fox_spot_check(that_fox, diff1, diff2, x, y) == false) do
+                    x = flr(rnd(level.extent.x2 - 20)) + 10
+                    y = flr(rnd(level.extent.y2 - 20 )) + 10
+                 end
+
+            end)
+
+            new_fox.x = x
+            new_fox.y = y
+
+            add(foxes, new_fox)
+        end
+    end
+
+
+    function draw_fox (fox)
         spr(fox_sprites[fox.state], fox.x, fox.y, 2, 2)
-        if (fox.state == "sleeping") draw_sleep_boundry()
-        if (fox.state == "awake" or fox.sub_state == "attacking") draw_mole_target()
+        if (fox.state == "sleeping") draw_sleep_boundry(fox)
+        if (fox.state == "awake" or fox.sub_state == "attacking") draw_mole_target(fox)
     end
 
-    function manage_fox()
-        if (fox.state == "sleeping") fox_mole_check()
-        if (fox.sub_state == "targeting") target_mole()
-        if (fox.sub_state == "attacking") attack_mole()
+    function manage_fox(fox)
+        if (fox.state == "sleeping") fox_mole_check(fox)
+        if (fox.sub_state == "targeting") target_mole(fox)
+        if (fox.sub_state == "attacking") attack_mole(fox)
     end
 
-    function fox_mole_check()
+    function fox_mole_check(fox)
 
         local d = ((mole.x - (fox.x + 6))^2) + ((mole.y - (fox.y + 6))^2)
         local r = fox.sleep_radius^2
@@ -424,26 +523,26 @@ function _init()
         end
     end
 
-    function target_mole()
+    function target_mole(fox)
         fox.attack_timer += 1
         if (fox.attack_timer > 50) then
             fox.attack_timer = 0
 
-            set_target_coords()
-            get_direction()
+            set_target_coords(fox)
+            get_direction(fox)
             fox.state = "attack" .. fox.direction
-            set_attack_angle()
+            set_attack_angle(fox)
             fox.sub_state = "attacking"
         end
     end
 
-    function draw_mole_target()
+    function draw_mole_target(fox)
         if (fox.target_radius < 8) fox.target_radius = 16
         circ(mole.x + 3.5, mole.y + 3.5, fox.target_radius, 8)
         fox.target_radius -= .3
     end
 
-    function attack_mole()
+    function attack_mole(fox)
         fox.attack_timer += 1
 
         fox.x += fox.dx
@@ -464,14 +563,14 @@ function _init()
         end
     end
 
-    function set_target_coords()
+    function set_target_coords(fox)
         fox.target_coords = {
             x = mole.x,
             y = mole.y
         }
     end
 
-    function get_direction()
+    function get_direction(fox)
         if (mole.direction == "center" or mole.direction == "up") then
             if ((mole.y - fox.y) > (fox.y - mole.y)) then
                 fox.direction = "center"
@@ -487,13 +586,13 @@ function _init()
         end
     end
 
-    function set_attack_angle()
+    function set_attack_angle(fox)
         local angle = atan2(fox.target_coords.y - fox.y, fox.target_coords.x - fox.x)
         fox.dx = sin(angle) * fox.speed
         fox.dy = cos(angle) * fox.speed
     end
 
-    function draw_sleep_boundry()
+    function draw_sleep_boundry(fox)
 
         local randomnumb = flr(rnd(3))
         local zcolor = 0
@@ -516,7 +615,7 @@ function _init()
         if (fox.coord_counter > 28) fox.coord_counter = 0
     end
 
-    function make_sleep_boundry_coords()
+    function make_sleep_boundry_coords(fox)
 
         for a = 0, .95, .083
         do
@@ -653,11 +752,16 @@ function _init()
 ----------------------------------
 -- functions to call on startup
 
+    make_foxes(3)
     generate_level_grass()
     generate_level_den_accents()
     generate_level_coins(37)
     create_dig_spots(8)
-    make_sleep_boundry_coords()
+
+    foreach(foxes, function(fox) 
+        fox.sleep_circle_coords = {}
+        make_sleep_boundry_coords(fox)
+    end)
 
 end
 
@@ -678,7 +782,12 @@ function _update()
 
     if (mole.underground == true) then
         coin_get_check()
-        manage_fox()
+
+        if (#foxes > 0) then
+            foreach(foxes, function(fox) 
+                manage_fox(fox)
+            end)
+        end
     end
 end
 
@@ -697,7 +806,12 @@ function _draw()
         draw_den()
         draw_dig_spots()
         draw_coins()
-        draw_fox()
+
+        if (#foxes > 0) then
+            foreach(foxes, function(fox) 
+                draw_fox(fox)
+            end)
+        end
     end
 
     if (#dig_circles > 0) animate_dig_circles()
@@ -710,6 +824,15 @@ function _draw()
     
     drop_coin_animation()
 
+    -- local temp_counter = 0
+    -- foreach(foxes, function (fox) 
+    --     temp_counter += 5
+    --     local data = fox.state
+
+    --     print(fox.state, mole.x - temp_counter, mole.y -temp_counter, 8)
+
+    -- end)
+
     draw_coin_count()
     draw_stamina_bar()
 end
@@ -719,15 +842,15 @@ __gfx__
 004444700044447000444470077444000000900000090000000000900900000000000000000000000aafaaa00000000011111211bbbabbbbb324452b00000000
 044444470444447704444447777744400000990000990000000000990990000000000000000000000afaaaa00000000011111111bbbbbbbb4b432b5400000000
 05ffff5605ffff5605ffff56666644400000999999990000000009999999000000000000000000000aaaafa00000000011111111babbbbab4542345400000000
-04ffff4604ffff6604ffff466666544000099e8998e9900000009999e89e800000009000000900000aaafaa00000000011111211bbbbbbbbb25b4b3b00000000
-0444444604444466044444400664444000099999999990000009999999999f50000099000099000000aaaa000000000012111111bbbbabbbb425534b00000000
+04ffff4604ffff4604ffff466666544000099e8998e9900000009999e89e800000009000000900000aaafaa00000000011111211bbbbbbbbb25b4b3b00000000
+0444444604444446044444400664444000099999999990000009999999999f50000099000099000000aaaa000000000012111111bbbbabbbb425534b00000000
 05500550055005500550055005500550000fff9999fff000000ffffffffffff00000999999990000000000000000000011111111bbbbbbbbbbb44bbb00000000
 00444400004444000044440000444400000099f55f990000000ff99999ff006000099e8998e99000000000000000000011111111bbbbbbbb1115511100000000
 049449400494944004494940044444400000099ff990000000009999999f6000000999999999900000aaaa000000000011112111bbbbbbbb1524452100000000
 004444700044447000444470077444000000099999900000000009999900ff00000fff9999fff0000aaafaa00000000011111111babbbbbb1245145100000000
 044444470444447704444447777744400000059ff950ff000000099fff0000000000f7f55f7f0ff00aaaafa00000000011111111bbbbbbbb5452554500000000
 04ffff5604ffff5604ffff56666644400000099ff990990000f99995ff50000000000f6776f099f00afaaaa00000000011211111bbbbbabb5415214500000000
-05ffff4605ffff6605ffff46666654400000099ff999990000f9959fff000000000059ffff9599f00aafaaa00000000011111111bbbbbbbb1545542100000000
+05ffff4605ffff4605ffff46666654400000099ff999990000f9959fff000000000059ffff9599f00aafaaa00000000011111111bbbbbbbb1545542100000000
 0444455604444556044445500664455000000999999990000000059999000000000009999999900000aaaa000000000011111121babbbbbb1251425100000000
 05500000055000000550000005500000000005500550000000000000550000000000055005500000000000000000000011111111bbbbbbbb1115511100000000
 00444400004444000044440000444400000000000000000000000000000000000000000000000000000000000000000011111111bbbbbbbb0000000000000000
