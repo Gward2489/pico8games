@@ -14,6 +14,7 @@ function _init()
 
     mole = {
         state = "walking",
+        sub_state = "prone",
         underground = false,
         direction = "center",
         animation_state = "1",
@@ -21,7 +22,9 @@ function _init()
         coins = {},
         x = 150,
         y = 150,
-        speed = 1.8
+        speed = 1.1,
+        stamina = 40,
+        invincible_timer = 0
     }
 
     mole_sprites = {
@@ -50,6 +53,8 @@ function _init()
     dig_spots = {}
     dig_timer = 0
     dig_circles = {}
+    dropped_coins = {}
+    coin_anim_counter = 0
 
 ----------------------------------
 -- fox objects
@@ -107,8 +112,12 @@ function _init()
 -- coin logic
 
     function draw_coin_count()
-        
-        print("coins: " .. tostr(#mole.coins), mole.x - 58, mole.y - 58, 14)
+        print("$♥:" .. tostr(#mole.coins), mole.x - 58, mole.y - 58, 14)
+    end
+
+    function draw_stamina_bar()
+        print("➡️:", mole.x - 58, mole.y - 51, 12)
+        if (mole.stamina > 0) line(mole.x - 47, mole.y - 49, (mole.x - 47) + mole.stamina, mole.y - 49, 12)
     end
 
     function coin_get_check()
@@ -174,6 +183,18 @@ function _init()
             end)
         end
 
+        if ( btn (5) ) then
+            if (mole.stamina > 0) then
+                mole.speed = 1.9
+                mole.stamina -= 2
+            else
+                mole.speed = 1.1
+            end
+        else
+            mole.speed = 1.1
+            if (mole.stamina < 40) mole.stamina += 1
+        end
+
         if (anim_counter == 1 or  anim_counter == 6) then
             mole.animation_state = "1"
         end
@@ -228,18 +249,18 @@ function _init()
         end
     end
 
-    function  create_dig_spots(spotCount)
+    function  create_dig_spots(spotcount)
 
-        for spot = 1, spotCount, 1
+        for spot = 1, spotcount, 1
         do
 
             local xmin = level.extent.x1
-            local xmax = level.extent.x2
+            local xmax = level.extent.x2 - 20
             local ymin = level.extent.y1
-            local ymax = level.extent.y2
+            local ymax = level.extent.y2 - 20
 
-            local x = flr(rnd(xmax)) + xmin
-            local y = flr(rnd(ymax)) + ymin
+            local x = flr(rnd(xmax)) + 10
+            local y = flr(rnd(ymax)) + 10
 
             add(dig_spots, {
                 x = x,
@@ -256,34 +277,34 @@ function _init()
 
         if (dig_timer < 11) then
             if (dig_timer % 2 == 0) then
-                local circleCount = flr(rnd(6) + 2)
+                local circlecount = flr(rnd(6) + 2)
 
-                for i = 1, circleCount, 1
+                for i = 1, circlecount, 1
                 do
-                    local circX = (mole.x - 3) + (flr(rnd(9)) + 3)
-                    local circY = (mole.y) + (rnd(5) + 3)
+                    local circx = (mole.x - 3) + (flr(rnd(9)) + 3)
+                    local circy = (mole.y) + (rnd(5) + 3)
 
-                    local colorChoice = (flr(rnd(5)) + 1)
-                    local colorNumb = 0
+                    local colorchoice = (flr(rnd(5)) + 1)
+                    local colornumb = 0
 
-                    if (colorChoice == 1) colorNumb = 4
-                    if (colorChoice == 2) colorNumb = 5
-                    if (colorChoice == 3) colorNumb = 6
-                    if (colorChoice == 4) colorNumb = 7
-                    if (colorChoice == 5) colorNumb = 15
+                    if (colorchoice == 1) colornumb = 4
+                    if (colorchoice == 2) colornumb = 5
+                    if (colorchoice == 3) colornumb = 6
+                    if (colorchoice == 4) colornumb = 7
+                    if (colorchoice == 5) colornumb = 15
 
                     local random_speed = rnd(1.7) + .3
 
                     local angle = .33 + (rnd(4) * .1)
-                    local circDx = sin(angle) * random_speed
-                    local circDy = cos(angle) * random_speed
+                    local circdx = sin(angle) * random_speed
+                    local circdy = cos(angle) * random_speed
 
                     add(dig_circles, {
-                        x = circX,
-                        y = circY,
-                        dx = circDx,
-                        dy = circDy,
-                        color = colorNumb,
+                        x = circx,
+                        y = circy,
+                        dx = circdx,
+                        dy = circdy,
+                        color = colornumb,
                         radius = 1.3
                     })
                 end
@@ -292,6 +313,57 @@ function _init()
 
         if (dig_timer > 12) then
             dig_circles = {}
+        end
+    end
+
+    function drop_coin_animation()
+        coin_anim_counter += 1
+
+        foreach(dropped_coins, function(dropped_coin) 
+            if (coin_anim_counter % 2 == 0) then
+                spr(dropped_coin.sprite, dropped_coin.x, dropped_coin.y)
+            end
+            dropped_coin.x += dropped_coin.dx
+            dropped_coin.y += dropped_coin.dy                        
+        end) 
+
+        if (coin_anim_counter > 20) then
+            coin_anim_counter = 0
+            dropped_coins = {}
+        end
+
+    end
+
+    function mole_drop_coins()
+        local counter = 0
+        for coin in all(mole.coins) do
+            counter += 1
+             if (counter < 4) then 
+
+                local circx = (mole.x - 4) + (flr(rnd(10)) + 2)
+                local circy = (mole.y) + (rnd(3) + 1)
+                local random_speed = rnd(1.3) + .3
+                local angle = .23 + (rnd(5) * .1)
+                local circdx = sin(angle) * random_speed
+                local circdy = cos(angle) * random_speed
+
+                add(dropped_coins, {
+                    sprite = coin.sprite,
+                    x = circx,
+                    y = circy,
+                    dx = circdx,
+                    dy = circdy
+                })                
+                del(mole.coins, coin)
+            end
+        end
+    end
+
+    function mole_damaged()
+        mole.invincible_timer += 1
+        if (mole.invincible_timer > 13) then
+            mole.sub_state = "prone"
+            mole.invincible_timer = 0
         end
     end
 
@@ -311,11 +383,11 @@ function _init()
 
     function draw_dig_spots()
 
-        local spriteChoice = 14
+        local spritechoice = 14
 
-        if (mole.underground) spriteChoice = 30
+        if (mole.underground) spritechoice = 30
 
-        foreach(dig_spots, function(spot) spr(spriteChoice, spot.x, spot.y) end)
+        foreach(dig_spots, function(spot) spr(spritechoice, spot.x, spot.y) end)
 
     end
 
@@ -378,7 +450,11 @@ function _init()
         fox.y += fox.dy
 
         if (coll(fox, mole)) then
-            -- fox hits mole
+            if (mole.sub_state == "prone") then
+                coin_anim_counter = 0
+                mole_drop_coins()
+             end
+            mole.sub_state = "damaged"
         end
 
         if (fox.attack_timer > 8) then
@@ -546,6 +622,7 @@ function _init()
         end
     end
 
+
 --------------------------------------
 -- collision logic
 
@@ -596,6 +673,8 @@ function _update()
       dig_mole()
     end
 
+    if (mole.sub_state == "damaged") mole_damaged()
+
 
     if (mole.underground == true) then
         coin_get_check()
@@ -613,7 +692,7 @@ function _draw()
     cls()
     if (mole.underground == false) then
         draw_grass() 
-        draw_dig_spots()        
+        draw_dig_spots()
     else 
         draw_den()
         draw_dig_spots()
@@ -622,26 +701,35 @@ function _draw()
     end
 
     if (#dig_circles > 0) animate_dig_circles()
-    draw_mole()
+
+    if (mole.sub_state == "damaged") then
+        if (mole.invincible_timer % 3 == 0) draw_mole()
+    else
+        draw_mole()
+    end
+    
+    drop_coin_animation()
+
     draw_coin_count()
+    draw_stamina_bar()
 end
 __gfx__
-00444400004444000044440000444400000000000000000000000000000000000000000000000000000000000000000011111111bbbbbbbbbbbbbbbb00000000
-0494494004949440044949400444444000000000000000000000000000000000000000000000000000aaaa000000000011211111bbbbbbbbbb3bb2bb00000000
-004444700044447000444460077444000000900000090000000000900900000000000000000000000aafaaa00000000011111211bbbabbbbb3b11b2b00000000
-044444470444447704444446777744400000990000990000000000990990000000000000000000000afaaaa00000000011111111bbbbbbbbbb1321bb00000000
-05ffff5605ffff5605ffff56666644400000999999990000000009999999000000000000000000000aaaafa00000000011111111babbbbabbb1231bb00000000
-04ffff4604ffff6604ffff466666544000099e8998e9900000009999e89e800000009000000900000aaafaa00000000011111211bbbbbbbbb2b11b3b00000000
-0444444604444466044444400664444000099999999990000009999999999f50000099000099000000aaaa000000000012111111bbbbabbbbb2bb3bb00000000
-05500550055005500550055005500550000fff9999fff000000ffffffffffff00000999999990000000000000000000011111111bbbbbbbbbbbbbbbb00000000
-00444400004444000044440000444400000099f55f990000000ff99999ff006000099e8998e99000000000000000000011111111bbbbbbbb1111111100000000
-049449400494944004494940044444400000099ff990000000009999999f6000000999999999900000aaaa000000000011112111bbbbbbbb1121151100000000
-004444700044447000444470077444000000099999900000000009999900ff00000fff9999fff0000aaafaa00000000011111111babbbbbb1213315100000000
-044444470444447704444447777744400000059ff950ff000000099fff0000000000f7f55f7f0ff00aaaafa00000000011111111bbbbbbbb1132531100000000
-04ffff5604ffff5604ffff56666644400000099ff990990000f99995ff50000000000f6776f099f00afaaaa00000000011211111bbbbbabb1135231100000000
-05ffff4605ffff6605ffff46666654400000099ff999990000f9959fff000000000059ffff9599f00aafaaa00000000011111111bbbbbbbb1513312100000000
-0444455604444556044445500664455000000999999990000000059999000000000009999999900000aaaa000000000011111121babbbbbb1151121100000000
-05500000055000000550000005500000000005500550000000000000550000000000055005500000000000000000000011111111bbbbbbbb1111111100000000
+00444400004444000044440000444400000000000000000000000000000000000000000000000000000000000000000011111111bbbbbbbbbbb44bbb00000000
+0494494004949440044949400444444000000000000000000000000000000000000000000000000000aaaa000000000011211111bbbbbbbbb43b524b00000000
+004444700044447000444470077444000000900000090000000000900900000000000000000000000aafaaa00000000011111211bbbabbbbb324452b00000000
+044444470444447704444447777744400000990000990000000000990990000000000000000000000afaaaa00000000011111111bbbbbbbb4b432b5400000000
+05ffff5605ffff5605ffff56666644400000999999990000000009999999000000000000000000000aaaafa00000000011111111babbbbab4542345400000000
+04ffff4604ffff6604ffff466666544000099e8998e9900000009999e89e800000009000000900000aaafaa00000000011111211bbbbbbbbb25b4b3b00000000
+0444444604444466044444400664444000099999999990000009999999999f50000099000099000000aaaa000000000012111111bbbbabbbb425534b00000000
+05500550055005500550055005500550000fff9999fff000000ffffffffffff00000999999990000000000000000000011111111bbbbbbbbbbb44bbb00000000
+00444400004444000044440000444400000099f55f990000000ff99999ff006000099e8998e99000000000000000000011111111bbbbbbbb1115511100000000
+049449400494944004494940044444400000099ff990000000009999999f6000000999999999900000aaaa000000000011112111bbbbbbbb1524452100000000
+004444700044447000444470077444000000099999900000000009999900ff00000fff9999fff0000aaafaa00000000011111111babbbbbb1245145100000000
+044444470444447704444447777744400000059ff950ff000000099fff0000000000f7f55f7f0ff00aaaafa00000000011111111bbbbbbbb5452554500000000
+04ffff5604ffff5604ffff56666644400000099ff990990000f99995ff50000000000f6776f099f00afaaaa00000000011211111bbbbbabb5415214500000000
+05ffff4605ffff6605ffff46666654400000099ff999990000f9959fff000000000059ffff9599f00aafaaa00000000011111111bbbbbbbb1545542100000000
+0444455604444556044445500664455000000999999990000000059999000000000009999999900000aaaa000000000011111121babbbbbb1251425100000000
+05500000055000000550000005500000000005500550000000000000550000000000055005500000000000000000000011111111bbbbbbbb1115511100000000
 00444400004444000044440000444400000000000000000000000000000000000000000000000000000000000000000011111111bbbbbbbb0000000000000000
 04944940049494400449494004444440000000000000000000000000000000000000000000000000000000000000000011111111bbbbbbbb0000000000000000
 00444470004444700044447007744400000090000009000000000090090000000000900550090000000000000000000011111111bbbbbabb0000000000000000
