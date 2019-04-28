@@ -19,11 +19,42 @@ function _init()
         direction = "center",
         animation_state = "1",
         box = {x1=0,y1=0,x2=6,y2=6},
-        coins = {},
+        coins = {
+            {
+                x = 4,
+                y = 4,
+                box = {x1=0,y1=0,x2=6,y2=6},
+                sprite = 26
+            },
+            {
+                x = 4,
+                y = 4,
+                box = {x1=0,y1=0,x2=6,y2=6},
+                sprite = 26
+            },
+            {
+                x = 4,
+                y = 4,
+                box = {x1=0,y1=0,x2=6,y2=6},
+                sprite = 26
+            },
+            {
+                x = 4,
+                y = 4,
+                box = {x1=0,y1=0,x2=6,y2=6},
+                sprite = 26
+            },
+            {
+                x =  4,
+                y =  4,
+                box = {x1=0,y1=0,x2=6,y2=6},
+                sprite = 26
+            },
+        },
         x = 150,
         y = 150,
-        speed = 1.1,
-        stamina = 40,
+        speed = 3,
+        stamina = 35,
         invincible_timer = 0
     }
 
@@ -63,7 +94,7 @@ function _init()
         state = "sleeping",
         sub_state = "sleeping",
         direction = "center",
-        speed = 7,
+        speed = 7.3,
         x = 150,
         y = 200,
         box = {x1=0,y1=0,x2=10,y2=10},
@@ -110,6 +141,19 @@ function _init()
         }
     }
 
+    active_level = 0
+
+    level_intro_timer = 0
+
+    coins_needed = 0
+
+    level_up_timer = 0
+
+    game_over_timer = 0
+
+    -- options: boot, level, level_intro, level_up
+    game_state = "boot"
+
 ----------------------------------------------------------------
 -- coin logic
 
@@ -125,6 +169,7 @@ function _init()
     function coin_get_check()
         foreach(level.coins, function(coin) 
                 if (coll(mole, coin)) then
+                    get_coin_sound()
                     del(level.coins, coin)
                     add(mole.coins, coin)
                 end
@@ -151,25 +196,25 @@ function _init()
 
         if ( btn (0) ) then
             mole.direction = "left"
-            mole.x -= mole.speed
+            if (boundry_check((mole.x - mole.speed), mole.y)) mole.x -= mole.speed
             if (pressed == false) anim_counter += 1
             pressed = true
         end 
         if ( btn (1) ) then
             mole.direction = "right" 
-            mole.x += mole.speed
+            if (boundry_check((mole.x + mole.speed), mole.y)) mole.x += mole.speed
             if (pressed == false) anim_counter += 1
             pressed = true
         end
         if ( btn (2) ) then 
             mole.direction = "up"
-            mole.y -= mole.speed
+            if (boundry_check(mole.x, (mole.y - mole.speed))) mole.y -= mole.speed
             if (pressed == false) anim_counter += 1
             pressed = true
         end
         if ( btn (3) ) then
             mole.direction = "center"
-            mole.y += mole.speed
+            if (boundry_check(mole.x, (mole.y + mole.speed))) mole.y += mole.speed
             if (pressed == false) anim_counter += 1
             pressed = true
         end
@@ -187,14 +232,14 @@ function _init()
 
         if ( btn (5) ) then
             if (mole.stamina > 0) then
-                mole.speed = 1.9
+                mole.speed = 4
                 mole.stamina -= 2
             else
-                mole.speed = 1.1
+                mole.speed = 3
             end
         else
-            mole.speed = 1.1
-            if (mole.stamina < 40) mole.stamina += 1
+            mole.speed = 3
+            if (mole.stamina < 35) mole.stamina += 1
         end
 
         if (anim_counter == 1 or  anim_counter == 6) then
@@ -217,6 +262,7 @@ function _init()
     function dig_mole()
 
         anim_counter += 1
+        start_dig_sound_loop()
 
         if (anim_counter == 1) then
             mole.animation_state = "1"
@@ -241,6 +287,8 @@ function _init()
             mole.direction = "center"
             if (mole.underground == false) then
                 mole.underground = true
+                stop_music()
+                start_underworld_music()
                 -- make_foxes(3)
                 -- foreach(foxes, function(fox)
                 
@@ -255,9 +303,12 @@ function _init()
                     fox.state = "sleeping"
                     fox.sub_state = "sleeping"
                     fox.sleep_circle_coords = {}
+                    fox.attack_timer = 0
                     make_sleep_boundry_coords(fox)
                 
                 end)
+                stop_music()
+                start_overworld_music()
             end
         end
     end
@@ -275,7 +326,7 @@ function _init()
     -- end
 
     function  create_dig_spots(spotcount)
-
+        dig_spots = {}
         local dig_spot_bounds = 15
 
         for spot = 1, spotcount, 1
@@ -361,7 +412,6 @@ function _init()
 
     function drop_coin_animation()
         coin_anim_counter += 1
-
         foreach(dropped_coins, function(dropped_coin) 
             if (coin_anim_counter % 2 == 0) then
                 spr(dropped_coin.sprite, dropped_coin.x, dropped_coin.y)
@@ -379,6 +429,7 @@ function _init()
 
     function mole_drop_coins()
         local counter = 0
+        mole_damage_sound()
         for coin in all(mole.coins) do
             counter += 1
              if (counter < 4) then 
@@ -519,15 +570,16 @@ function _init()
             if (d < r) then
                 fox.state = "awake"
                 fox.sub_state = "targeting"
+                fox_awake_sound()
             end
         end
     end
 
     function target_mole(fox)
         fox.attack_timer += 1
-        if (fox.attack_timer > 50) then
+        if (fox.attack_timer > 60) then
             fox.attack_timer = 0
-
+            fox_dash_sound()
             set_target_coords(fox)
             get_direction(fox)
             fox.state = "attack" .. fox.direction
@@ -545,8 +597,10 @@ function _init()
     function attack_mole(fox)
         fox.attack_timer += 1
 
-        fox.x += fox.dx
-        fox.y += fox.dy
+
+
+        if (boundry_check(fox.x + fox.dx, fox.y)) fox.x += fox.dx
+        if (boundry_check(fox.x, fox.y + fox.dy)) fox.y += fox.dy
 
         if (coll(fox, mole)) then
             if (mole.sub_state == "prone") then
@@ -556,7 +610,7 @@ function _init()
             mole.sub_state = "damaged"
         end
 
-        if (fox.attack_timer > 8) then
+        if (fox.attack_timer > 11) then
             fox.attack_timer = 0
             fox.state = "awake"
             fox.sub_state = "targeting"
@@ -642,6 +696,41 @@ function _init()
 
     end
 
+---------------------------------------------------------------------------------
+-- music logic
+
+function start_overworld_music()
+    music(0)
+end
+
+function start_underworld_music()
+    music(4)
+end
+
+function stop_music()
+    music(-1)
+end
+
+function start_dig_sound_loop()
+    sfx(16)
+end
+
+function get_coin_sound()
+    sfx(19)
+end
+
+function fox_awake_sound()
+    sfx(17)
+end
+
+function fox_dash_sound()
+    sfx(18)
+end
+
+function mole_damage_sound()
+    sfx(20)
+end
+
 
 ----------------------------------------------------------------------------------
 -- level logic
@@ -657,6 +746,7 @@ function _init()
     end
 
     function generate_level_grass()
+        level.grass_accents = {}
         for x = level.extent.x1, level.extent.x2, 1
         do
             if (((flr(rnd(10)) + 1) % 2) == 0) then
@@ -681,6 +771,7 @@ function _init()
     end
 
     function generate_level_den_accents()
+        level.den_accents = {}
         for x = level.extent.x1, level.extent.x2, 1
         do
             if (((flr(rnd(10)) + 1) % 2) == 0) then
@@ -722,6 +813,244 @@ function _init()
     end
 
 
+    function make_new_level(level_number)
+
+        active_level = level_number
+
+        dropped_coins = {}
+        mole.x = 150
+        mole.y = 150
+        mole.underground = false
+        mole.state = "walking"
+        mole.sub_state = "prone"
+        mole.direction = "center"
+        mole.animation_state = "1"
+        mole.stamina = 40
+        mole.invincible_timer = 0
+        mole.coins =  {
+            {
+                x = 4,
+                y = 4,
+                box = {x1=0,y1=0,x2=6,y2=6},
+                sprite = 26
+            },
+            {
+                x = 4,
+                y = 4,
+                box = {x1=0,y1=0,x2=6,y2=6},
+                sprite = 26
+            },
+            {
+                x = 4,
+                y = 4,
+                box = {x1=0,y1=0,x2=6,y2=6},
+                sprite = 26
+            },
+            {
+                x = 4,
+                y = 4,
+                box = {x1=0,y1=0,x2=6,y2=6},
+                sprite = 26
+            },
+            {
+                x =  4,
+                y =  4,
+                box = {x1=0,y1=0,x2=6,y2=6},
+                sprite = 26
+            },
+        }
+
+
+
+
+        local coin_count = 28 + (level_number * 3 )
+
+        coins_needed = flr(coin_count * .7) 
+
+        local dig_spots =  9 + (level_number * 2)
+        local fox_count = 4 + (level_number * 2)
+
+         make_foxes(fox_count)
+         generate_level_grass()
+         generate_level_den_accents()
+         generate_level_coins(coin_count)
+         create_dig_spots(dig_spots)
+         start_overworld_music()
+         game_state = "level"
+
+        foreach(foxes, function(fox) 
+            fox.sleep_circle_coords = {}
+            make_sleep_boundry_coords(fox)
+        end)
+    end
+
+    function coin_watcher()
+
+        if (#mole.coins == 0) then
+            game_state = "game_over"
+            stop_music()
+        end
+
+        if (game_state == "level") then
+            if (#level.coins == 0) then
+                stop_music()
+                game_state = "level_up"
+            end
+        end
+
+    end
+
+    function draw_level_intro()
+        local level_name = "den " .. tostr(active_level + 1)
+        cls()
+        print (level_name, 33, 43, 14)
+        print ("get money", 36, 57, 14)
+
+    end
+
+    function manage_level_intro()
+        level_intro_timer +=1
+
+        if (level_intro_timer > 38) then
+            level_intro_timer = 0            
+            active_level +=1
+            make_new_level(active_level)
+        end
+
+    end
+
+
+    function draw_level_up()
+        cls()
+        camera(0,0)
+        print("mole got all the coins", 25, 30, 14)
+
+        if ((#mole.coins - 5) >= coins_needed) then
+            if (active_level == 3) then
+                print("mole is stacked with cash!", 25, 41, 14)
+                print("you win", 30, 51, 14)
+                print("press z or x to play again", 25, 61, 14)
+            else
+                print("mole was able to pay his debt!", 25, 41, 14)
+                print("press z or x to go to next den", 25, 51, 14)
+            end
+
+        else
+            print("but didn't keep enough!", 25, 41, 14)
+            print("press z or x to try again", 25, 51, 14)
+        end
+
+
+    end
+
+    function manage_level_up()
+        level_up_timer += 1
+
+        if (level_up_timer < 15) then
+        else
+            if ((#mole.coins -5) >= coins_needed) then
+                if (active_level == 3) then
+                    if (btn(4) or btn(5)) then
+                        sfx(21)
+                        active_level = 0
+                        level_up_timer = 0
+                        game_state = "level_intro"
+                    end
+                else
+                    if (btn(4) or btn(5)) then
+                        sfx(21)
+                        level_up_timer = 0
+                        game_state = "level_intro"
+                    end
+                end
+            else
+                if (btn(4) or btn(5)) then
+                    sfx(21)
+                    active_level = 0
+                    level_up_timer = 0
+                    game_state = "level_intro"
+                end
+            end
+        end
+    end
+
+    function draw_game_over()
+        cls()
+        camera(0, 0)
+        print("mole ran out of coins ! ", 20, 27, 14)
+        print("mole was buried by debt", 20, 38, 14)
+        print("and evicted from his home", 20, 49, 14)
+        print("press z or x to play again", 20, 60, 14)
+    end
+
+    function manage_game_over()
+        game_over_timer += 1
+
+        if (game_over_timer < 10) then 
+        else
+            if (btn(4) or btn(5)) then
+                game_over_timer = 0
+                sfx(21)
+                active_level = 0
+                mole.coins = {
+                {
+                    x = 4,
+                    y = 4,
+                    box = {x1=0,y1=0,x2=6,y2=6},
+                    sprite = 26
+                },
+                {
+                    x = 4,
+                    y = 4,
+                    box = {x1=0,y1=0,x2=6,y2=6},
+                    sprite = 26
+                },
+                {
+                    x = 4,
+                    y = 4,
+                    box = {x1=0,y1=0,x2=6,y2=6},
+                    sprite = 26
+                },
+                {
+                    x = 4,
+                    y = 4,
+                    box = {x1=0,y1=0,x2=6,y2=6},
+                    sprite = 26
+                },
+                {
+                    x =  4,
+                    y =  4,
+                    box = {x1=0,y1=0,x2=6,y2=6},
+                    sprite = 26
+                },
+                }
+                game_state = "level_intro"
+            end
+        end
+    end
+
+-------------------------------------
+-- menu logic
+
+
+
+    function manage_menu()
+        if (btn(4) or btn(5)) then
+            sfx(21)
+            game_state = "level_intro"
+        end
+    end
+
+    function draw_menu()
+        cls()
+        print("mole vs fox", 25, 20, 14)
+        print("press z or x to begin", 15, 45, 14)
+
+    end
+
+
+
+
 --------------------------------------
 -- collision logic
 
@@ -749,19 +1078,25 @@ function _init()
     	return true
     end
 
+    function boundry_check(x, y)
+        local in_boundry = true
+
+            local xmin = level.extent.x1 
+            local xmax = level.extent.x2 - 4
+            local ymin = level.extent.y1 
+            local ymax = level.extent.y2 - 5
+
+
+        if (x < xmin or x > xmax or y < ymin or y > ymax) then
+            in_boundry = false
+        end
+        return in_boundry
+    end
+
 ----------------------------------
 -- functions to call on startup
 
-    make_foxes(3)
-    generate_level_grass()
-    generate_level_den_accents()
-    generate_level_coins(37)
-    create_dig_spots(8)
-
-    foreach(foxes, function(fox) 
-        fox.sleep_circle_coords = {}
-        make_sleep_boundry_coords(fox)
-    end)
+    -- make_new_level(1)
 
 end
 
@@ -771,22 +1106,35 @@ end
 -- update function
 
 function _update()
-    if (mole.state == "walking") move_mole()
-    if (mole.state == "digging") then
-      dig_animation()
-      dig_mole()
-    end
+    coin_watcher()
+    if (game_state == "boot") then
 
-    if (mole.sub_state == "damaged") mole_damaged()
+        manage_menu()
+
+    elseif (game_state == "level_intro") then
+        manage_level_intro()
+    elseif (game_state == "game_over") then
+        manage_game_over()
+    elseif (game_state == "level_up") then
+        manage_level_up()
+    else
+        if (mole.state == "walking") move_mole()
+        if (mole.state == "digging") then
+        dig_animation()
+        dig_mole()
+        end
+
+        if (mole.sub_state == "damaged") mole_damaged()
 
 
-    if (mole.underground == true) then
-        coin_get_check()
+        if (mole.underground == true) then
+            coin_get_check()
 
-        if (#foxes > 0) then
-            foreach(foxes, function(fox) 
-                manage_fox(fox)
-            end)
+            if (#foxes > 0) then
+                foreach(foxes, function(fox) 
+                    manage_fox(fox)
+                end)
+            end
         end
     end
 end
@@ -797,44 +1145,59 @@ end
 -- draw function
 
 function _draw()
-    camera(mole.x - 60, mole.y - 60)
-    cls()
-    if (mole.underground == false) then
-        draw_grass() 
-        draw_dig_spots()
-    else 
-        draw_den()
-        draw_dig_spots()
-        draw_coins()
 
-        if (#foxes > 0) then
-            foreach(foxes, function(fox) 
-                draw_fox(fox)
-            end)
-        end
-    end
+    if (game_state == "boot") then
 
-    if (#dig_circles > 0) animate_dig_circles()
-
-    if (mole.sub_state == "damaged") then
-        if (mole.invincible_timer % 3 == 0) draw_mole()
+        draw_menu()
+    elseif (game_state == "level_intro") then
+        draw_level_intro()
+    elseif (game_state == "game_over") then
+        draw_game_over()
+    elseif (game_state == "level_up") then
+        draw_level_up()
     else
-        draw_mole()
-    end
-    
-    drop_coin_animation()
 
-    -- local temp_counter = 0
-    -- foreach(foxes, function (fox) 
-    --     temp_counter += 5
-    --     local data = fox.state
+        camera(mole.x - 60, mole.y - 60)
+        cls()
+        if (mole.underground == false) then
+            draw_grass() 
+            draw_dig_spots()
+        else 
+            draw_den()
+            draw_dig_spots()
+            draw_coins()
 
-    --     print(fox.state, mole.x - temp_counter, mole.y -temp_counter, 8)
+            if (#foxes > 0) then
+                foreach(foxes, function(fox) 
+                    draw_fox(fox)
+                end)
+            end
+        end
 
-    -- end)
+        if (#dig_circles > 0) animate_dig_circles()
 
-    draw_coin_count()
-    draw_stamina_bar()
+        if (mole.sub_state == "damaged") then
+            if (mole.invincible_timer % 3 == 0) draw_mole()
+        else
+            draw_mole()
+        end
+        
+        drop_coin_animation()
+
+        -- local temp_counter = 0
+        -- foreach(foxes, function (fox) 
+        --     temp_counter += 5
+        --     local data = fox.state
+
+        --     print(fox.state, mole.x - temp_counter, mole.y -temp_counter, 8)
+
+        -- end)
+
+        draw_coin_count()
+        draw_stamina_bar()
+
+
+    end 
 end
 __gfx__
 00444400004444000044440000444400000000000000000000000000000000000000000000000000000000000000000011111111bbbbbbbbbbb44bbb00000000
@@ -886,11 +1249,17 @@ __sfx__
 011600002b5222b5222b5222b52200000000000000000000295222952229522295220000000000000000000024524000002452430524245240000030524245240000024524305240000024524000000000000000
 01160000185221852218522185220000000000000000000016522165221652216522000000000000000000001b5221a5521855218552000000000018552000001855200000000000000000000000000000000000
 01160000185221852218522185220000000000000000000016522165221652216522000000000000000000001b5240000027514275021b5242950411514000001b5240000027514275021b524000000000000000
+00010000087500a750124501675012750174501e7501a750147500f75008750174503e1000e70014700197001d70019700147000f70008700077000c7001170015700187001a7001e7001f7001a7000b70004700
+00020000141501415017150191501d150211502415027150291502b1502e150301503115031150311002c1002c1001110012100141001e100261002a1002d1002f1003010030100371003e1001c1001f1001d100
+000300000b6300b6300c6300f63010630166301d63021630266002a6002b6000f5000f5000f50015030130300f0300c0300903004030030300c1000a100091000610004100011000110006300033000130001300
+0003000038730387303b7403b74000000000000000000000000002410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00010000221502215021150201501d1501a1501715014150121500d15006150011500910007100011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0001000019750197501a7501d7501f750257502d750347502130024300273001d7501e7502075023750267502a7502d7503275036750347003570036700227502475025750277502b7502f75034750387502f700
 __music__
 01 00010203
-01 00010203
-01 03040506
+00 00010203
 00 03040506
-00 090a0c0e
+02 03040506
+01 090a0c0e
 02 080b0d0f
 
