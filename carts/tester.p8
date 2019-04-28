@@ -5,7 +5,7 @@ __lua__
 ----------------------------------------------------------
 ----------------------------------------------------------
 ----------------------------------------------------------
--- INIT FUNCTION
+-- init function
 
 function _init()
 
@@ -46,6 +46,10 @@ function _init()
         dig3 = 50,
         dig4 = 51  
     }
+
+    dig_spots = {}
+    dig_timer = 0
+    dig_circles = {}
 
 ----------------------------------
 -- fox objects
@@ -103,8 +107,8 @@ function _init()
 -- coin logic
 
     function draw_coin_count()
-        local mole_coins =  "coins: " .. tostr(#mole.coins)
-        print(mole_coins, mole.x - 58, mole.y - 58, 14)
+        
+        print("coins: " .. tostr(#mole.coins), mole.x - 58, mole.y - 58, 14)
     end
 
     function coin_get_check()
@@ -158,11 +162,16 @@ function _init()
             if (pressed == false) anim_counter += 1
             pressed = true
         end
-        if ( btn (4) ) then
-            mole.direction = "dig"
-            anim_counter = 0
-            mole.state = "digging"
 
+
+        if ( btn (4) ) then
+            foreach(dig_spots, function(spot) 
+                if (coll(spot, mole)) then
+                    mole.direction = "dig"
+                    anim_counter = 0
+                    mole.state = "digging"
+                end
+            end)
         end
 
         if (anim_counter == 1 or  anim_counter == 6) then
@@ -202,12 +211,112 @@ function _init()
             mole.animation_state = "4"
         end
 
-        if (anim_counter >= 11) then
+        if (anim_counter >= 13) then
             anim_counter = 0
+            dig_timer = 0
             mole.state = "walking"
             mole.direction = "center"
-            if (mole.underground == false) mole.underground = true else mole.underground = false
+            if (mole.underground == false) then
+                mole.underground = true 
+            else 
+                mole.underground = false
+                fox.state = "sleeping"
+                fox.sub_state = "sleeping"
+                fox.sleep_circle_coords = {}
+                make_sleep_boundry_coords()
+            end
         end
+    end
+
+    function  create_dig_spots(spotCount)
+
+        for spot = 1, spotCount, 1
+        do
+
+            local xmin = level.extent.x1
+            local xmax = level.extent.x2
+            local ymin = level.extent.y1
+            local ymax = level.extent.y2
+
+            local x = flr(rnd(xmax)) + xmin
+            local y = flr(rnd(ymax)) + ymin
+
+            add(dig_spots, {
+                x = x,
+                y = y,
+                box = {x1=0,y1=0,x2=6,y2=6}
+            })
+        end
+
+    end
+
+    function dig_animation()
+
+        dig_timer += 1
+
+        if (dig_timer < 11) then
+            if (dig_timer % 2 == 0) then
+                local circleCount = flr(rnd(6) + 2)
+
+                for i = 1, circleCount, 1
+                do
+                    local circX = (mole.x - 3) + (flr(rnd(9)) + 3)
+                    local circY = (mole.y) + (rnd(5) + 3)
+
+                    local colorChoice = (flr(rnd(5)) + 1)
+                    local colorNumb = 0
+
+                    if (colorChoice == 1) colorNumb = 4
+                    if (colorChoice == 2) colorNumb = 5
+                    if (colorChoice == 3) colorNumb = 6
+                    if (colorChoice == 4) colorNumb = 7
+                    if (colorChoice == 5) colorNumb = 15
+
+                    local random_speed = rnd(1.7) + .3
+
+                    local angle = .33 + (rnd(4) * .1)
+                    local circDx = sin(angle) * random_speed
+                    local circDy = cos(angle) * random_speed
+
+                    add(dig_circles, {
+                        x = circX,
+                        y = circY,
+                        dx = circDx,
+                        dy = circDy,
+                        color = colorNumb,
+                        radius = 1.3
+                    })
+                end
+            end
+        end
+
+        if (dig_timer > 12) then
+            dig_circles = {}
+        end
+    end
+
+    function animate_dig_circles()
+
+        foreach(dig_circles, function(circle) 
+
+            circfill(circle.x, circle.y, circle.radius, circle.color)
+
+            circle.x += circle.dx
+            circle.y += circle.dy
+            circle.radius += .04
+        
+        end)
+
+    end
+
+    function draw_dig_spots()
+
+        local spriteChoice = 14
+
+        if (mole.underground) spriteChoice = 30
+
+        foreach(dig_spots, function(spot) spr(spriteChoice, spot.x, spot.y) end)
+
     end
 
 ---------------------------------------------------------------------------------
@@ -228,7 +337,7 @@ function _init()
 
     function fox_mole_check()
 
-        local d = (mole.x - (fox.x + 6)^2) + (mole.y - (fox.y + 6)^2)
+        local d = ((mole.x - (fox.x + 6))^2) + ((mole.y - (fox.y + 6))^2)
         local r = fox.sleep_radius^2
 
         local diff1 = abs(mole.x - fox.x)
@@ -310,17 +419,17 @@ function _init()
 
     function draw_sleep_boundry()
 
-        local randomNumb = flr(rnd(3))
-        local zColor = 0
-        if (randomNumb == 0) zColor = 6
-        if (randomNumb == 1) zColor = 12
-        if (randomNumb == 2) zColor = 14
-        if (randomNumb == 3) zColor = 14
+        local randomnumb = flr(rnd(3))
+        local zcolor = 0
+        if (randomnumb == 0) zcolor = 6
+        if (randomnumb == 1) zcolor = 12
+        if (randomnumb == 2) zcolor = 14
+        if (randomnumb == 3) zcolor = 14
 
         foreach(fox.sleep_circle_coords, function(coord) 
 
             if (fox.coord_counter % 3 == 0 and rnd(7) > 4 ) then
-                coord.color = zColor
+                coord.color = zcolor
             end
             print("z", coord.x, coord.y, coord.color) 
 
@@ -336,10 +445,10 @@ function _init()
         for a = 0, .95, .083
         do
 
-            local zColor = 0
-            if (fox.coord_counter == 0) zColor = 6
-            if (fox.coord_counter == 1) zColor = 12
-            if (fox.coord_counter == 2) zColor = 14
+            local zcolor = 0
+            if (fox.coord_counter == 0) zcolor = 6
+            if (fox.coord_counter == 1) zcolor = 12
+            if (fox.coord_counter == 2) zcolor = 14
 
             local x = (fox.sleep_radius * cos(a)) + (fox.x + 6)
             local y = (fox.sleep_radius * sin(a)) + (fox.y + 6)
@@ -347,7 +456,7 @@ function _init()
             add(fox.sleep_circle_coords, {
                 x = x,
                 y = y,
-                color = zColor
+                color = zcolor
             })
 
             fox.coord_counter += 1
@@ -470,6 +579,7 @@ function _init()
     generate_level_grass()
     generate_level_den_accents()
     generate_level_coins(37)
+    create_dig_spots(8)
     make_sleep_boundry_coords()
 
 end
@@ -477,11 +587,16 @@ end
 ----------------------------------------------------------
 ----------------------------------------------------------
 ----------------------------------------------------------
--- UPDATE FUNCTION
+-- update function
 
 function _update()
     if (mole.state == "walking") move_mole()
-    if (mole.state == "digging") dig_mole()
+    if (mole.state == "digging") then
+      dig_animation()
+      dig_mole()
+    end
+
+
     if (mole.underground == true) then
         coin_get_check()
         manage_fox()
@@ -491,27 +606,24 @@ end
 ----------------------------------------------------------
 ----------------------------------------------------------
 ----------------------------------------------------------
--- DRAW FUNCTION
+-- draw function
 
 function _draw()
+    camera(mole.x - 60, mole.y - 60)
     cls()
-
     if (mole.underground == false) then
         draw_grass() 
+        draw_dig_spots()        
     else 
         draw_den()
+        draw_dig_spots()
         draw_coins()
         draw_fox()
     end
 
+    if (#dig_circles > 0) animate_dig_circles()
     draw_mole()
     draw_coin_count()
-
-    print(tostr(mole.x), mole.x -20, mole.y - 20 )
-    print(tostr(mole.y), mole.x -28, mole.y - 28 )
-
-
-    camera(mole.x - 60, mole.y - 60)
 end
 __gfx__
 00444400004444000044440000444400000000000000000000000000000000000000000000000000000000000000000011111111bbbbbbbbbbbbbbbb00000000
@@ -522,14 +634,14 @@ __gfx__
 04ffff4604ffff6604ffff466666544000099e8998e9900000009999e89e800000009000000900000aaafaa00000000011111211bbbbbbbbb2b11b3b00000000
 0444444604444466044444400664444000099999999990000009999999999f50000099000099000000aaaa000000000012111111bbbbabbbbb2bb3bb00000000
 05500550055005500550055005500550000fff9999fff000000ffffffffffff00000999999990000000000000000000011111111bbbbbbbbbbbbbbbb00000000
-00444400004444000044440000444400000099f55f990000000ff99999ff006000099e8998e99000000000000000000011111111bbbbbbbb0000000000000000
-049449400494944004494940044444400000099ff990000000009999999f6000000999999999900000aaaa000000000011112111bbbbbbbb0000000000000000
-004444700044447000444470077444000000099999900000000009999900ff00000fff9999fff0000aaafaa00000000011111111babbbbbb0000000000000000
-044444470444447704444447777744400000059ff950ff000000099fff0000000000f7f55f7f0ff00aaaafa00000000011111111bbbbbbbb0000000000000000
-04ffff5604ffff5604ffff56666644400000099ff990990000f99995ff50000000000f6776f099f00afaaaa00000000011211111bbbbbabb0000000000000000
-05ffff4605ffff6605ffff46666654400000099ff999990000f9959fff000000000059ffff9599f00aafaaa00000000011111111bbbbbbbb0000000000000000
-0444455604444556044445500664455000000999999990000000059999000000000009999999900000aaaa000000000011111121babbbbbb0000000000000000
-05500000055000000550000005500000000005500550000000000000550000000000055005500000000000000000000011111111bbbbbbbb0000000000000000
+00444400004444000044440000444400000099f55f990000000ff99999ff006000099e8998e99000000000000000000011111111bbbbbbbb1111111100000000
+049449400494944004494940044444400000099ff990000000009999999f6000000999999999900000aaaa000000000011112111bbbbbbbb1121151100000000
+004444700044447000444470077444000000099999900000000009999900ff00000fff9999fff0000aaafaa00000000011111111babbbbbb1213315100000000
+044444470444447704444447777744400000059ff950ff000000099fff0000000000f7f55f7f0ff00aaaafa00000000011111111bbbbbbbb1132531100000000
+04ffff5604ffff5604ffff56666644400000099ff990990000f99995ff50000000000f6776f099f00afaaaa00000000011211111bbbbbabb1135231100000000
+05ffff4605ffff6605ffff46666654400000099ff999990000f9959fff000000000059ffff9599f00aafaaa00000000011111111bbbbbbbb1513312100000000
+0444455604444556044445500664455000000999999990000000059999000000000009999999900000aaaa000000000011111121babbbbbb1151121100000000
+05500000055000000550000005500000000005500550000000000000550000000000055005500000000000000000000011111111bbbbbbbb1111111100000000
 00444400004444000044440000444400000000000000000000000000000000000000000000000000000000000000000011111111bbbbbbbb0000000000000000
 04944940049494400449494004444440000000000000000000000000000000000000000000000000000000000000000011111111bbbbbbbb0000000000000000
 00444470004444700044447007744400000090000009000000000090090000000000900550090000000000000000000011111111bbbbbabb0000000000000000
