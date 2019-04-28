@@ -19,9 +19,8 @@ function _init()
         animation_state = "1",
         box = {x1=0,y1=0,x2=6,y2=6},
         coins = {},
-        target_radius = 11,
-        x = 450,
-        y = 0,
+        x = 150,
+        y = 150,
         speed = 1.8
     }
 
@@ -53,13 +52,17 @@ function _init()
 
     fox = {
         state = "sleeping",
-        sub_state = "targeting",
+        sub_state = "sleeping",
         direction = "center",
         speed = 7,
-        x = 450,
-        y = -30,
+        x = 150,
+        y = 200,
         box = {x1=0,y1=0,x2=10,y2=10},
         attack_timer = 0,
+        target_radius = 11,
+        sleep_radius = 40,
+        sleep_circle_coords = {},
+        coord_counter = 0,
         target_coords = {
             x = 0,
             y = 0
@@ -89,10 +92,10 @@ function _init()
         den_accents = {},
         coins = {},
         extent = {
-            x1 = 600,
-            y1 = -150,
-            x2 = 300,
-            y2 = 150
+            x1 = 10,
+            y1 = 10,
+            x2 = 310,
+            y2 = 310
         }
     }
 
@@ -213,7 +216,8 @@ function _init()
 
     function draw_fox ()
         spr(fox_sprites[fox.state], fox.x, fox.y, 2, 2)
-        if (fox.state == "awake") draw_mole_target()
+        if (fox.state == "sleeping") draw_sleep_boundry()
+        if (fox.state == "awake" or fox.sub_state == "attacking") draw_mole_target()
     end
 
     function manage_fox()
@@ -223,16 +227,25 @@ function _init()
     end
 
     function fox_mole_check()
-        if (((mole.x - fox.x)^2 + (mole.y - fox.y)^2) < 40^2) then
-            fox.state = "awake"
-            fox.sub_state = "targeting"
+
+        local d = (mole.x - (fox.x + 6)^2) + (mole.y - (fox.y + 6)^2)
+        local r = fox.sleep_radius^2
+
+        local diff1 = abs(mole.x - fox.x)
+        local diff2 = abs(mole.y - fox.y)
+
+
+        if ( diff1 < fox.sleep_radius and diff2 < fox.sleep_radius) then
+            if (d < r) then
+                fox.state = "awake"
+                fox.sub_state = "targeting"
+            end
         end
     end
 
     function target_mole()
         fox.attack_timer += 1
-
-        if (fox.attack_timer > 17) then
+        if (fox.attack_timer > 50) then
             fox.attack_timer = 0
 
             set_target_coords()
@@ -241,13 +254,12 @@ function _init()
             set_attack_angle()
             fox.sub_state = "attacking"
         end
-
     end
 
     function draw_mole_target()
-            if (mole.target_radius < 8) mole.target_radius = 16
-            circ(mole.x + 3.5, mole.y + 3.5, mole.target_radius, 8)
-            mole.target_radius -= .3
+        if (fox.target_radius < 8) fox.target_radius = 16
+        circ(mole.x + 3.5, mole.y + 3.5, fox.target_radius, 8)
+        fox.target_radius -= .3
     end
 
     function attack_mole()
@@ -296,6 +308,56 @@ function _init()
         fox.dy = cos(angle) * fox.speed
     end
 
+    function draw_sleep_boundry()
+
+        local randomNumb = flr(rnd(3))
+        local zColor = 0
+        if (randomNumb == 0) zColor = 6
+        if (randomNumb == 1) zColor = 12
+        if (randomNumb == 2) zColor = 14
+        if (randomNumb == 3) zColor = 14
+
+        foreach(fox.sleep_circle_coords, function(coord) 
+
+            if (fox.coord_counter % 3 == 0 and rnd(7) > 4 ) then
+                coord.color = zColor
+            end
+            print("z", coord.x, coord.y, coord.color) 
+
+
+        end)
+
+        fox.coord_counter += 1
+        if (fox.coord_counter > 28) fox.coord_counter = 0
+    end
+
+    function make_sleep_boundry_coords()
+
+        for a = 0, .95, .083
+        do
+
+            local zColor = 0
+            if (fox.coord_counter == 0) zColor = 6
+            if (fox.coord_counter == 1) zColor = 12
+            if (fox.coord_counter == 2) zColor = 14
+
+            local x = (fox.sleep_radius * cos(a)) + (fox.x + 6)
+            local y = (fox.sleep_radius * sin(a)) + (fox.y + 6)
+
+            add(fox.sleep_circle_coords, {
+                x = x,
+                y = y,
+                color = zColor
+            })
+
+            fox.coord_counter += 1
+            if (fox.coord_counter > 2) fox.coord_counter = 0
+
+
+        end
+
+    end
+
 
 ----------------------------------------------------------------------------------
 -- level logic
@@ -311,10 +373,10 @@ function _init()
     end
 
     function generate_level_grass()
-        for x = 300, 600, 1
+        for x = level.extent.x1, level.extent.x2, 1
         do
             if (((flr(rnd(10)) + 1) % 2) == 0) then
-                for y = -150, 150, 1 
+                for y = level.extent.y1, level.extent.y2, 1 
                 do
                     if (((flr(rnd(700)) + 1) % 33) == 0) then
                         add(level.grass_accents, {
@@ -335,10 +397,10 @@ function _init()
     end
 
     function generate_level_den_accents()
-        for x = 300, 600, 1
+        for x = level.extent.x1, level.extent.x2, 1
         do
             if (((flr(rnd(10)) + 1) % 2) == 0) then
-                for y = -150, 150, 1 
+                for y = level.extent.y1, level.extent.y2, 1 
                 do
                     if (((flr(rnd(700)) + 1) % 33) == 0) then
                         add(level.den_accents, {
@@ -362,8 +424,8 @@ function _init()
 
         for i = 1, coin_count, 1
         do
-            local x = flr(rnd(300)) + 300
-            local y = flr(rnd(300)) - 150
+            local x = flr(rnd(level.extent.x2 - 20)) + 10
+            local y = flr(rnd(level.extent.y2 - 20 )) + 10
 
             add(level.coins, {
                 x = x,
@@ -408,6 +470,7 @@ function _init()
     generate_level_grass()
     generate_level_den_accents()
     generate_level_coins(37)
+    make_sleep_boundry_coords()
 
 end
 
@@ -443,6 +506,10 @@ function _draw()
 
     draw_mole()
     draw_coin_count()
+
+    print(tostr(mole.x), mole.x -20, mole.y - 20 )
+    print(tostr(mole.y), mole.x -28, mole.y - 28 )
+
 
     camera(mole.x - 60, mole.y - 60)
 end
